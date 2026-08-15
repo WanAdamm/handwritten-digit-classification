@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MNIST Digit Lab</title>
+  <style>
+    :root {
+      --backdrop: #737de5;
+      --grid: #aab1f5;
+      --ink: #17182b;
+      --paper: #ffffff;
+      --sun: #ffd447;
+      --coral: #ff665a;
+      --muted: #565873;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      font-family: "Trebuchet MS", sans-serif;
+      background-color: var(--backdrop);
+      background-image: radial-gradient(var(--grid) 1.5px, transparent 1.5px);
+      background-size: 22px 22px;
+    }
+
+    button, canvas { -webkit-tap-highlight-color: transparent; }
+
+    .page {
+      width: min(1100px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0 52px;
+    }
+
+    .masthead {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 22px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-family: Consolas, monospace;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 46px;
+      height: 46px;
+      place-items: center;
+      color: var(--paper);
+      font: 900 1.4rem/1 "Arial Black", sans-serif;
+      background: var(--coral);
+      border: 3px solid var(--ink);
+      box-shadow: 4px 4px 0 var(--ink);
+      transform: rotate(-4deg);
+    }
+
+    .sequence {
+      margin: 0;
+      padding: 8px 12px;
+      font: 700 0.72rem/1 Consolas, monospace;
+      letter-spacing: 0.08em;
+      background: var(--sun);
+      border: 2px solid var(--ink);
+    }
+
+    .lab {
+      padding: clamp(22px, 4vw, 48px);
+      background: var(--paper);
+      border: 4px solid var(--ink);
+      box-shadow: 12px 12px 0 var(--ink);
+    }
+
+    .intro {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(220px, 360px);
+      align-items: end;
+      gap: 28px;
+      margin-bottom: clamp(26px, 5vw, 48px);
+    }
+
+    h1 {
+      max-width: 680px;
+      margin: 0;
+      font-family: "Segoe Print", "Comic Sans MS", cursive;
+      font-size: clamp(2.35rem, 6vw, 5.15rem);
+      line-height: 0.98;
+      letter-spacing: -0.055em;
+    }
+
+    h1 span {
+      position: relative;
+      display: inline-block;
+      z-index: 0;
+    }
+
+    h1 span::after {
+      position: absolute;
+      right: -3px;
+      bottom: 0.08em;
+      left: -3px;
+      height: 0.22em;
+      z-index: -1;
+      content: "";
+      background: var(--sun);
+      transform: rotate(-1deg);
+    }
+
+    .intro p {
+      margin: 0 0 5px;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.55;
+    }
+
+    .workbench {
+      display: grid;
+      grid-template-columns: minmax(280px, 1.15fr) minmax(250px, 0.85fr);
+      gap: clamp(24px, 5vw, 58px);
+      align-items: stretch;
+    }
+
+    .panel-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 0 10px;
+      font: 700 0.72rem/1 Consolas, monospace;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    .pixel-size {
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    .canvas-shell {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+      background: #000000;
+      border: 4px solid var(--ink);
+      box-shadow: 7px 7px 0 var(--sun);
+      aspect-ratio: 1;
+    }
+
+    .canvas-shell::after {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      content: "";
+      opacity: 0.12;
+      background-image:
+        repeating-linear-gradient(to right, transparent 0 calc(100% / 28 - 1px), #ffffff calc(100% / 28 - 1px) calc(100% / 28)),
+        repeating-linear-gradient(to bottom, transparent 0 calc(100% / 28 - 1px), #ffffff calc(100% / 28 - 1px) calc(100% / 28));
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      image-rendering: pixelated;
+      touch-action: none;
+    }
+
+    canvas:focus-visible {
+      outline: 5px solid var(--coral);
+      outline-offset: -9px;
+    }
+
+    .canvas-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-top: 17px;
+    }
+
+    .hint {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    button {
+      padding: 11px 18px;
+      color: var(--ink);
+      font: 800 0.78rem/1 "Trebuchet MS", sans-serif;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: var(--paper);
+      border: 3px solid var(--ink);
+      box-shadow: 4px 4px 0 var(--ink);
+      cursor: pointer;
+    }
+
+    button:hover { background: var(--sun); }
+    button:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+    button:focus-visible { outline: 4px solid var(--coral); outline-offset: 3px; }
+
+    .answer-panel {
+      display: flex;
+      min-height: 100%;
+      flex-direction: column;
+    }
+
+    .answer-card {
+      display: grid;
+      min-height: 0;
+      flex: 1;
+      place-items: center;
+      padding: 18px;
+      background: var(--sun);
+      border: 4px solid var(--ink);
+      box-shadow: 8px 8px 0 var(--coral);
+      transform: rotate(1.25deg);
+    }
+
+    .digit {
+      margin: 0;
+      font-family: "Arial Black", Impact, sans-serif;
+      font-size: clamp(9rem, 25vw, 16rem);
+      line-height: 0.9;
+      letter-spacing: -0.1em;
+      transform: translateX(-0.05em);
+    }
+
+    .digit.pop { animation: stamp 320ms cubic-bezier(0.2, 1.55, 0.55, 1); }
+
+    .status {
+      min-height: 1.4em;
+      margin: 24px 0 0;
+      font: 700 0.82rem/1.4 Consolas, monospace;
+      text-align: center;
+    }
+
+    .status[data-state="error"] { color: #c92f28; }
+
+    .flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      margin-top: 12px;
+      color: var(--muted);
+      font: 400 0.68rem/1 Consolas, monospace;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    @keyframes stamp {
+      0% { opacity: 0; transform: scale(1.65) rotate(-8deg); }
+      100% { opacity: 1; transform: scale(1) rotate(0); }
+    }
+
+    @media (min-width: 761px) {
+      html, body { height: 100%; overflow: hidden; }
+
+      .page {
+        display: flex;
+        height: 100vh;
+        flex-direction: column;
+        padding: 18px 0 24px;
+      }
+
+      .masthead {
+        flex: none;
+        margin-bottom: 14px;
+      }
+
+      .lab {
+        display: flex;
+        min-height: 0;
+        flex: 1;
+        flex-direction: column;
+        padding: clamp(20px, 2.5vw, 34px);
+      }
+
+      .intro {
+        flex: none;
+        margin-bottom: 20px;
+      }
+
+      h1 { font-size: clamp(2.5rem, 4vw, 4.1rem); }
+
+      .workbench {
+        min-height: 0;
+        flex: 1;
+      }
+
+      .workbench > section { min-height: 0; }
+
+      .workbench > section:first-child {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+      }
+
+      .canvas-shell {
+        width: auto;
+        max-width: 100%;
+        height: 100%;
+        justify-self: center;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .page { width: min(100% - 22px, 590px); padding: 22px 0 36px; }
+      .masthead { align-items: center; }
+      .sequence { display: none; }
+      .lab { box-shadow: 7px 7px 0 var(--ink); }
+      .intro, .workbench { grid-template-columns: 1fr; }
+      .intro { gap: 14px; }
+      .intro p { max-width: 44ch; }
+      .workbench { gap: 36px; }
+      .answer-card { min-height: 270px; }
+      .digit { font-size: clamp(9rem, 52vw, 15rem); }
+    }
+
+    @media (max-width: 390px) {
+      .lab { padding: 18px; }
+      .canvas-actions { align-items: flex-start; flex-direction: column; }
+      button { width: 100%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .digit.pop { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="masthead">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">28</span>
+        <span>MNIST<br>DIGIT LAB</span>
+      </div>
+      <p class="sequence">Draw &rarr; lift &rarr; guess</p>
+    </header>
+
+    <section class="lab" aria-labelledby="page-title">
+      <div class="intro">
+        <h1 id="page-title">Doodle a digit.<br>Let the <span>neurons</span> guess.</h1>
+        <p>Draw one number from 0 to 9. The grid is the same 28 by 28 pixels the model learned from.</p>
+      </div>
+
+      <div class="workbench">
+        <section aria-labelledby="draw-label">
+          <div class="panel-label">
+            <span id="draw-label">Your handwriting</span>
+            <span class="pixel-size">28 x 28 pixels</span>
+          </div>
+          <div class="canvas-shell">
+            <canvas id="drawing" width="28" height="28" tabindex="0" aria-label="Draw a single digit here with a mouse, pen, or touch.">
+              Drawing requires a browser with canvas support.
+            </canvas>
+          </div>
+          <div class="canvas-actions">
+            <p class="hint">Bright strokes work best.</p>
+            <button id="clear" type="button">Clear grid</button>
+          </div>
+        </section>
+
+        <section class="answer-panel" aria-labelledby="answer-label">
+          <div class="panel-label">
+            <span id="answer-label">The model says</span>
+            <span class="pixel-size">one best guess</span>
+          </div>
+          <div class="answer-card">
+            <p class="digit" id="digit" aria-hidden="true">?</p>
+          </div>
+          <p class="status" id="status" role="status" aria-live="polite">Waiting for ink.</p>
+          <div class="flow" aria-hidden="true">
+            <span>784 pixels</span><span>&rarr;</span><span>3 layers</span><span>&rarr;</span><span>1 digit</span>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.querySelector("#drawing");
+    const clearButton = document.querySelector("#clear");
+    const digit = document.querySelector("#digit");
+    const status = document.querySelector("#status");
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+
+    let drawing = false;
+    let lastPoint = null;
+    let requestNumber = 0;
+
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    context.lineWidth = 2.3;
+    context.strokeStyle = "#ffffff";
+    context.fillStyle = "#ffffff";
+
+    function clearCanvas() {
+      requestNumber += 1;
+      context.save();
+      context.fillStyle = "#000000";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.restore();
+      digit.textContent = "?";
+      digit.classList.remove("pop");
+      status.textContent = "Waiting for ink.";
+      status.dataset.state = "idle";
+    }
+
+    function getPoint(event) {
+      const bounds = canvas.getBoundingClientRect();
+      return {
+        x: (event.clientX - bounds.left) * canvas.width / bounds.width,
+        y: (event.clientY - bounds.top) * canvas.height / bounds.height
+      };
+    }
+
+    function beginStroke(event) {
+      if (event.button !== 0) return;
+      drawing = true;
+      canvas.setPointerCapture(event.pointerId);
+      lastPoint = getPoint(event);
+      context.beginPath();
+      context.arc(lastPoint.x, lastPoint.y, context.lineWidth / 2, 0, Math.PI * 2);
+      context.fill();
+    }
+
+    function continueStroke(event) {
+      if (!drawing) return;
+      const point = getPoint(event);
+      context.beginPath();
+      context.moveTo(lastPoint.x, lastPoint.y);
+      context.lineTo(point.x, point.y);
+      context.stroke();
+      lastPoint = point;
+    }
+
+    async function requestPrediction() {
+      const currentRequest = ++requestNumber;
+      const rgba = context.getImageData(0, 0, canvas.width, canvas.height).data;
+      const pixels = Array.from({ length: 784 }, (_, index) => rgba[index * 4]);
+
+      status.textContent = "Thinking in pixels...";
+      status.dataset.state = "loading";
+
+      try {
+        const response = await fetch("/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pixels })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Prediction failed.");
+        if (currentRequest !== requestNumber) return;
+
+        digit.textContent = result.digit;
+        digit.classList.remove("pop");
+        void digit.offsetWidth;
+        digit.classList.add("pop");
+        status.textContent = `My best guess is ${result.digit}.`;
+        status.dataset.state = "ready";
+      } catch (error) {
+        if (currentRequest !== requestNumber) return;
+        digit.textContent = "?";
+        status.textContent = "Could not reach the model. Try another stroke.";
+        status.dataset.state = "error";
+      }
+    }
+
+    function endStroke(event) {
+      if (!drawing) return;
+      drawing = false;
+      lastPoint = null;
+      if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+      requestPrediction();
+    }
+
+    canvas.addEventListener("pointerdown", beginStroke);
+    canvas.addEventListener("pointermove", continueStroke);
+    canvas.addEventListener("pointerup", endStroke);
+    canvas.addEventListener("pointercancel", () => { drawing = false; lastPoint = null; });
+    clearButton.addEventListener("click", clearCanvas);
+    canvas.addEventListener("keydown", (event) => {
+      if (event.key === "Delete" || event.key === "Backspace") {
+        event.preventDefault();
+        clearCanvas();
+      }
+    });
+
+    clearCanvas();
+  </script>
+</body>
+</html>

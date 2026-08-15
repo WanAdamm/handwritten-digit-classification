@@ -20,6 +20,9 @@ The complete workflow is presented in [`nn.ipynb`](nn.ipynb) as a tutorial-style
 | File | Description |
 | --- | --- |
 | `nn.ipynb` | Main tutorial and executable experiment. |
+| `app.py` | Local web server and PyTorch inference endpoint. |
+| `index.html` | Interactive 28 x 28 digit-drawing interface. |
+| `test_app.py` | Inference input and output contract checks. |
 | `README.md` | Project overview and setup instructions. |
 | `.gitignore` | Excludes local environments, generated models, data, caches, and agent configuration. |
 
@@ -46,6 +49,22 @@ jupyter notebook nn.ipynb
 You can also open `nn.ipynb` directly in an editor with Jupyter support, such as Visual Studio Code.
 
 Run cells from top to bottom so that the dataset, tensors, parameters, and predictions are created in dependency order.
+
+## Run the Digit Lab
+
+First run the notebook through the model-saving cell so that `model_weights.pth` exists. Then start the local app:
+
+```powershell
+.venv\Scripts\python.exe app.py
+```
+
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000), draw a digit, and lift the pointer to see the model's prediction. The visible drawing surface is enlarged for usability, but its internal resolution remains exactly 28 x 28 pixels.
+
+Run the inference checks with:
+
+```powershell
+.venv\Scripts\python.exe -m unittest test_app.py
+```
 
 ## Notes
 
