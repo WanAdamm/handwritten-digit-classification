@@ -1,0 +1,92 @@
+# Python environments and caches
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Generated data, models, and experiment artifacts
+data/
+datasets/
+output/
+outputs/
+runs/
+wandb/
+*.pth
+*.pt
+*.ckpt
+*.onnx
+*.h5
+*.pkl
+*.joblib
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# AI coding agents and local agent configuration
+.agent/
+.agents/
+.aider/
+.augment/
+.claude/
+.cline/
+.codex/
+.continue/
+.copilot/
+.cursor/
+.gemini/
+.opencode/
+.roo/
+.windsurf/
+.aider*
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+opencode.json
+opencode.jsonc
+.mcp.json
+mcp.json
+skills-lock.json
+.github/agents/
+.github/instructions/
+.github/prompts/
+.github/copilot-instructions.md
+
+# Editors and IDEs
+.idea/
+.vscode/
+*.code-workspace
+*.swp
+*.swo
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
