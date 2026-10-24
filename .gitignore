@@ -29,6 +29,9 @@ outputs/
 runs/
 wandb/
 *.pth
+# Demo weights shipped with the web app (exceptions to the *.pth rule)
+!web_demo/model_weights.pth
+!web_demo/standard_model_weights.pth
 *.pt
 *.ckpt
 *.onnx
