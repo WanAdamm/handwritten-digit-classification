@@ -31,6 +31,9 @@ mnist-parallel-processing/
 │   ├── test_app.py                 # Unit tests for inference handler
 │   ├── model_weights.pth           # Trained network parameters
 │   └── standard_model_weights.pth  # Baseline parameters
+├── run_benchmark.ps1               # One-command Windows benchmark runner
+├── run_benchmark.sh                # One-command macOS benchmark runner
+├── requirements-benchmark.txt      # Pinned benchmark dependencies
 ├── nn.ipynb                        # Tutorial notebook: building neural networks from scratch
 └── README.md                       # Repository guide & execution instructions
 ```
@@ -39,16 +42,49 @@ mnist-parallel-processing/
 
 ## Quickstart & Environment Setup
 
-Python 3.12 is recommended. Activate your local virtual environment:
+Python 3.12 is required by the one-command benchmark wrappers. Activate your local virtual environment:
 
 ```powershell
+# Windows
 .venv\Scripts\Activate.ps1
+
+# macOS
+source .venv/bin/activate
 ```
 
-Or install required dependencies:
+Or install the pinned benchmark dependencies:
 ```powershell
-python -m pip install torch numpy matplotlib kagglehub
+python -m pip install -r requirements-benchmark.txt
 ```
+
+---
+
+## One-Command Benchmark (Windows & macOS)
+
+Both wrappers require **Python 3.12**, create or validate `.venv`, install the pinned `requirements-benchmark.txt`, pre-cache MNIST, run the exact benchmark (`CNN`, 1 epoch, batch size 128, `p=1 2 4 8`), and regenerate both figures.
+
+**Windows PowerShell:**
+```powershell
+.\run_benchmark.ps1
+```
+
+If PowerShell blocks local scripts:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run_benchmark.ps1
+```
+
+**macOS:**
+```bash
+bash run_benchmark.sh
+```
+
+Or make it executable once:
+```bash
+chmod +x run_benchmark.sh
+./run_benchmark.sh
+```
+
+Results are written to `docs/benchmark_results.md`; figures are written to `figures/`. The first run downloads Python packages and MNIST; later runs reuse the caches. Timings will differ by host CPU, but the workload, seed, and process counts are identical.
 
 ---
 
@@ -90,16 +126,17 @@ python src/plot_scalability.py
 
 ## Benchmarking Results Summary
 
-Measured on an 8-Core Intel/AMD CPU with batch size 128:
+Measured on an Intel Core i5-1135G7 (4 physical cores / 8 logical processors), 12 GB RAM, with batch size 128:
 
 | Process Count ($p$) | Execution Mode | Exec Time $T_p$ (s) | Epoch Time (s) | Throughput (img/s) | Speedup $S_p$ | Efficiency $E_p$ (%) | Val Acc (%) |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **1 (Seq)** | Single Thread (`num_threads=1`) | **40.20** | 36.72 | 1,492.7 | **1.000x** | **100.0%** | 98.47% |
-| **1 (DDP)** | Gloo Backend (`world_size=1`) | **39.66** | 36.20 | 1,512.9 | **1.014x** | 101.4% | 98.46% |
-| **2 (DDP)** | Gloo Backend (`world_size=2`) | **30.17** | 26.51 | 1,989.0 | **1.332x** | **66.6%** | 98.53% |
-| **4 (DDP)** | Gloo Backend (`world_size=4`) | **27.04** | 23.06 | 2,219.3 | **1.487x** | **37.2%** | 98.50% |
+| **1 (Seq)** | Single Thread (`num_threads=1`) | **49.69** | 45.39 | 1,207.5 | **1.000x** | **100.0%** | 98.47% |
+| **1 (DDP)** | Gloo Backend (`world_size=1`) | **48.49** | 44.33 | 1,237.3 | **1.025x** | 102.5% | 98.46% |
+| **2 (DDP)** | Gloo Backend (`world_size=2`) | **36.26** | 31.70 | 1,654.6 | **1.370x** | **68.5%** | 98.53% |
+| **4 (DDP)** | Gloo Backend (`world_size=4`) | **33.25** | 29.22 | 1,804.7 | **1.495x** | **37.4%** | 98.50% |
+| **8 (DDP)** | Gloo Backend (`world_size=8`) | **52.78** | 47.69 | 1,136.9 | **0.942x** | **11.8%** | 98.57% |
 
-*Speedup peaks at **$1.49\times$** at $p=4$ while preserving mathematical model accuracy (~$98.5\%$). Refer to [`docs/SCALABILITY_ANALYSIS.md`](docs/SCALABILITY_ANALYSIS.md) for detailed mathematical derivations under Amdahl's Law and Karp-Flatt metrics.*
+*Speedup peaks at **$1.495\times$** at $p=4$ while preserving model accuracy (~$98.5\%$). At $p=8$, eight workers oversubscribe four physical cores and the run regresses to **$0.942\times$**. Refer to [`docs/SCALABILITY_ANALYSIS.md`](docs/SCALABILITY_ANALYSIS.md) for the Amdahl and Karp-Flatt analysis.*
 
 ---
 

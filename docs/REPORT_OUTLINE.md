@@ -29,9 +29,9 @@
 - **1.1 The Computational Challenge in Machine Learning**: Growth of parameter scales and dataset sizes necessitating parallel computing paradigms.
 - **1.2 Assignment Scope**: Developing and benchmarking single-thread baseline vs. distributed multi-core data parallelism on the MNIST benchmark dataset.
 - **1.3 Key Achievements**:
-  - Implemented thread-isolated sequential baseline (`train_sequential.py`, $T_1 = 42.03\text{s}$, $98.47\%$ acc).
+  - Implemented thread-isolated sequential baseline (`train_sequential.py`, $T_1 = 49.69\text{s}$, $98.47\%$ acc).
   - Implemented multi-process distributed training (`train_parallel.py`) using PyTorch DDP + Gloo socket IPC.
-  - Demonstrated speedup up to $1.65\times$ on 4 workers and analyzed efficiency decay via Amdahl's Law.
+  - Demonstrated a measured peak speedup of $1.495\times$ on 4 workers; $p=8$ regressed to $0.942\times$ through SMT contention and communication overhead.
 
 ---
 
@@ -120,9 +120,9 @@ A comparative taxonomy across parallel programming paradigms:
 
 ### Section 6: Experimental Methodology & Setup
 - **6.1 Hardware Specification**:
-  - CPU: Multi-Core x86_64 Processor (8 physical cores, 16 threads).
-  - Host RAM: 16 GB DDR4/DDR5.
-  - OS: Windows 11 (64-bit).
+  - CPU: Intel Core i5-1135G7 (4 physical cores, 8 logical processors).
+  - Host RAM: 12 GB.
+  - OS: Windows 64-bit.
 - **6.2 Software Configuration**:
   - Python 3.12, PyTorch 2.13.0+cpu.
   - Backend: Gloo over local TCP sockets.
@@ -138,19 +138,21 @@ A comparative taxonomy across parallel programming paradigms:
 - **7.1 Benchmarking Results Table**:
   *(Present the full empirical benchmark table: $p$, $T_p$, Epoch Time, Throughput, $S_p$, $E_p$, Accuracy).*
 - **7.2 Speedup ($S_p$) Curve Analysis**:
-  - Sub-linear scaling: $S_2 = 1.455\times$, $S_4 = 1.647\times$.
+  - Sub-linear scaling to the optimum: $S_2 = 1.370\times$, $S_4 = 1.495\times$.
+  - Measured regression at $p=8$: $S_8 = 0.942\times$ (slower than sequential).
   - Comparison against ideal linear speedup ($S_p = p$).
 - **7.3 Efficiency ($E_p$) Curve Analysis**:
-  - $E_1 = 100\%$, $E_2 = 72.8\%$, $E_4 = 41.2\%$.
-  - Discussion of efficiency decay characteristics.
+  - $E_1 = 100\%$, $E_2 = 68.5\%$, $E_4 = 37.4\%$, $E_8 = 11.8\%$.
+  - Discussion of efficiency decay and the physical-core limit.
 - **7.4 Model Accuracy Invariance**:
-  - Demonstration that parallelization preserves mathematical convergence ($98.47\%$ sequential vs $98.50\%$ parallel at epoch 1).
+  - Demonstration that parallelization preserves convergence (98.46%–98.57% parallel vs 98.47% sequential at epoch 1).
 
 ---
 
 ### Section 8: In-Depth Discussion of HPC Overhead Factors
 - **8.1 Amdahl's Law Modeling & Karp-Flatt Analysis**:
-  - Fitting observed speedup to Amdahl's formula yields an effective serial fraction $s \approx 0.20 - 0.35$.
+  - The $s=0.20$ Amdahl curve is retained as a reference bound.
+  - Measured Karp-Flatt overhead rises from $e=0.460$ at $p=2$ to $e=0.559$ at $p=4$ and $e=1.071$ at $p=8$, showing communication/contention dominance.
 - **8.2 Inter-Process Communication & Gloo Socket Emulation**:
   - Overhead of Windows TCP socket buffers and OS kernel transitions vs native shared memory.
 - **8.3 All-Reduce Gradient Volume vs Computation Granularity**:
@@ -158,12 +160,12 @@ A comparative taxonomy across parallel programming paradigms:
 - **8.4 Memory Bus Saturation (Von Neumann Bottleneck)**:
   - Cache thrashing and DRAM bandwidth limits when 4+ workers stream weight updates concurrently.
 - **8.5 Thread Contention & Hyper-Threading Limits**:
-  - Diminishing returns beyond physical core counts ($p > 4$).
+  - The host has 4 physical cores / 8 logical processors; $p=8$ oversubscribes the physical cores and is measured at $0.942\times$ sequential speed.
 
 ---
 
 ### Section 9: Conclusion, Recommendations & Future Work
-- **9.1 Summary of Findings**: Data parallelism on multi-core CPU provides tangible speedups ($1.65\times$), but is bounded by IPC and memory bus overhead for lightweight models.
+- **9.1 Summary of Findings**: Data parallelism on this 4-core/8-thread CPU provides a measured peak speedup of $1.495\times$ at $p=4$, but is bounded by IPC, memory bus overhead, and SMT contention; $p=8$ regresses to $0.942\times$.
 - **9.2 Practical Recommendations**:
   - Use larger mini-batches and gradient accumulation to amortize All-Reduce communication costs.
   - Pin worker processes to physical CPU cores using CPU affinity masks (`psutil` / `taskset`).

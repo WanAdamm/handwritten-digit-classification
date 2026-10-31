@@ -56,7 +56,7 @@ To empirically determine the experimentally observed serial fraction including a
 
 $$e = \frac{\frac{1}{S_p} - \frac{1}{p}}{1 - \frac{1}{p}}$$
 
-If $e$ remains constant across varying $p$, parallel efficiency loss is dominated by inherent serialization. If $e$ monotonically increases with $p$, efficiency loss is dominated by inter-process communication overhead.
+If $e$ remains constant across varying $p$, parallel efficiency loss is dominated by inherent serialization. If $e$ monotonically increases with $p$, efficiency loss is dominated by inter-process communication overhead. When $S_p < 1$, the Karp-Flatt value exceeds 1; this indicates that measured overhead and contention outweigh any parallel gain rather than representing a physical serial fraction.
 
 ---
 
@@ -94,23 +94,23 @@ Under strong scaling (where the total problem size $N$ remains constant regardle
 
 $$\text{Throughput Scaling Factor}(p) = \frac{\text{Throughput}(p)}{\text{Throughput}(1)} = \frac{\frac{N \cdot E}{T_p}}{\frac{N \cdot E}{T_1}} = \frac{T_1}{T_p} \equiv S_p$$
 
-**HPC Significance**: While Speedup ($S_p$) is a dimensionless ratio, Training Throughput ($\text{images/sec}$) provides an absolute, hardware-comparable velocity metric. It enables engineers to directly project wall-clock training time for arbitrary dataset sizes and epoch horizons. In our benchmark, throughput scales from **1,492.7 img/s** (single thread) to **2,219.3 img/s** ($p=4$ workers), representing a **$1.49\times$ real-world computational speedup**.
+**HPC Significance**: While Speedup ($S_p$) is a dimensionless ratio, Training Throughput ($\text{images/sec}$) provides an absolute, hardware-comparable velocity metric. It enables engineers to directly project wall-clock training time for arbitrary dataset sizes and epoch horizons. In our benchmark, throughput rises from **1,207.5 img/s** (single thread) to a peak of **1,804.7 img/s** at $p=4$ workers, representing a **$1.495\times$ real-world computational speedup**. At $p=8$, throughput falls to **1,136.9 img/s** because eight workers oversubscribe four physical cores.
 
 ---
 
 ## 2. Scalability Performance Benchmark Tables
 
-### 2.1 Empirical Benchmarking Table (Measured on 8-Core Intel/AMD CPU, 1 Epoch, Batch Size 128)
+### 2.1 Empirical Benchmarking Table (Measured on Intel Core i5-1135G7, 4 Cores / 8 Threads, 1 Epoch, Batch Size 128)
 
 | Process Count ($p$) | Execution Mode | Exec Time $T_p$ (s) | Epoch Time (s) | Throughput (img/s) | Speedup ($S_p$) | Efficiency ($E_p$) | Val Acc (%) |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **$1$ (Seq)** | Single Thread (`num_threads=1`) | **42.03** | 38.46 | 1,427.5 | **1.000x** | **100.0%** | 98.47% |
-| **$1$ (DDP)** | Gloo Backend (`world_size=1`) | **41.12** | 37.46 | 1,459.3 | **1.022x** | 102.2% | 98.46% |
-| **$2$ (DDP)** | Gloo Backend (`world_size=2`) | **28.88** | 25.21 | 2,077.7 | **1.455x** | **72.8%** | 98.53% |
-| **$4$ (DDP)** | Gloo Backend (`world_size=4`) | **25.51** | 21.90 | 2,351.6 | **1.647x** | **41.2%** | 98.50% |
-| **$8$ (DDP)** | Gloo Backend (`world_size=8`)* | **24.15** | 19.85 | 2,484.5 | **1.740x** | **21.8%** | 98.52% |
+| **$1$ (Seq)** | Single Thread (`num_threads=1`) | **49.69** | 45.39 | 1,207.5 | **1.000x** | **100.0%** | 98.47% |
+| **$1$ (DDP)** | Gloo Backend (`world_size=1`) | **48.49** | 44.33 | 1,237.3 | **1.025x** | 102.5% | 98.46% |
+| **$2$ (DDP)** | Gloo Backend (`world_size=2`) | **36.26** | 31.70 | 1,654.6 | **1.370x** | **68.5%** | 98.53% |
+| **$4$ (DDP)** | Gloo Backend (`world_size=4`) | **33.25** | 29.22 | 1,804.7 | **1.495x** | **37.4%** | 98.50% |
+| **$8$ (DDP)** | Gloo Backend (`world_size=8`) | **52.78** | 47.69 | 1,136.9 | **0.942x** | **11.8%** | 98.57% |
 
-*\* Projected / measured under strong scaling with memory bus bandwidth saturation.*
+*All rows are measured. The $p=8$ run occupies all eight logical processors but only four physical cores; it is slower than the sequential baseline, so no projection is used.*
 
 ---
 
@@ -119,9 +119,11 @@ $$\text{Throughput Scaling Factor}(p) = \frac{\text{Throughput}(p)}{\text{Throug
 | $p$ | Ideal Speedup | Amdahl Speedup ($s=0.20$) | Measured Speedup ($S_p$) | Karp-Flatt Overhead ($e$) |
 | :---: | :---: | :---: | :---: | :---: |
 | **1** | 1.00x | 1.00x | 1.00x | — |
-| **2** | 2.00x | 1.67x | 1.46x | 0.374 |
-| **4** | 4.00x | 2.50x | 1.65x | 0.476 |
-| **8** | 8.00x | 3.33x | 1.74x | 0.513 |
+| **2** | 2.00x | 1.67x | 1.37x | 0.460 |
+| **4** | 4.00x | 2.50x | 1.50x | 0.559 |
+| **8** | 8.00x | 3.33x | 0.94x | 1.071 |
+
+The rising Karp-Flatt metric shows that efficiency loss is dominated by communication and contention, not by a fixed serial fraction. At $p=8$, $e>1$ because the measured speedup is below 1.
 
 ---
 
@@ -132,7 +134,7 @@ The observed deviation from ideal linear speedup ($E_p < 100\%$) on a single mul
 ### 3.1 Inter-Process Communication (IPC) & Gloo TCP Socket Architecture
 - **Gloo Overview**: Developed by Meta (FAIR), Gloo is an open-source collective communications library for distributed machine learning. While GPUs rely on NVIDIA NCCL over NVLink/PCIe, Gloo serves as PyTorch's primary cross-platform backend for **CPU-based distributed training**.
 - **Loopback TCP Sockets (`127.0.0.1`)**: On a single machine, Gloo connects worker processes over local TCP loopback sockets rather than physical network wires. 
-  1. *Rendezvous (TCPStore)*: Rank 0 initializes a TCP listening socket on `127.0.0.1:29500`. Worker ranks connect via a 3-way TCP handshake to negotiate rank assignments and establish a full-mesh socket interconnect.
+  1. *Rendezvous (TCPStore)*: Rank 0 initializes a TCP listening socket on `127.0.0.1:<ephemeral-port>`. Worker ranks connect via a 3-way TCP handshake to negotiate rank assignments and establish a full-mesh socket interconnect.
   2. *Gradient Ring All-Reduce*: At every mini-batch (469 iterations per epoch), workers exchange gradient slices by invoking `send()` and `recv()` socket calls.
 - **The Quadruple-Copy Memory Journey**: Unlike shared-memory threads that directly access shared pointer addresses, communicating over TCP sockets requires 4 distinct memory copies per parameter slice:
   $$\text{Worker } i \text{ Tensor (User Space)} \xrightarrow{\text{Copy 1}} \text{PyTorch Gloo Buffer} \xrightarrow{\text{Copy 2 (send syscall)}} \text{Kernel Socket TX Buffer}$$
@@ -142,8 +144,8 @@ The observed deviation from ideal linear speedup ($E_p < 100\%$) on a single mul
 
 ### 3.2 Gradient All-Reduce Communication vs. Computation Ratio
 - In data parallelism, workers exchange gradients after every backward pass.
-- For small neural networks on MNIST, local backward compute on a small slice (e.g., 32 samples on $p=4$) completes in only $\approx 35 \text{ ms}$.
-- If All-Reduce communication and barrier coordination take $\approx 15 \text{ ms}$, communication accounts for **$30\%$ of the step time**.
+- For small neural networks on MNIST, local backward compute on a small slice (e.g., 32 samples on $p=4$) completes in only tens of milliseconds.
+- The measured $p=4$ epoch time is **29.22 s** for roughly 469 global training steps plus rank-0 validation, giving an average upper bound of about **62 ms per step**. A significant share of that step is All-Reduce and barrier coordination rather than local convolution/GEMM work.
 - This demonstrates why **coarse-grained parallelism** (larger batch sizes, larger convolutional layers) scales much better than fine-grained parallelism.
 
 ### 3.3 Memory Bandwidth Saturation (The Von Neumann Bottleneck)
@@ -162,5 +164,6 @@ The observed deviation from ideal linear speedup ($E_p < 100\%$) on a single mul
 
 ### 3.5 Core Contention & Hyper-Threading (SMT) Penalties
 - Physical CPU cores possess dedicated floating-point units (FPUs) and vector ALUs (AVX-512 / AVX2).
-- When scaling to $p=8$ on an 8-core / 16-thread CPU, worker processes begin sharing physical core pipeline resources via Simultaneous Multi-Threading (SMT/Hyper-Threading).
-- SMT provides excellent throughput for I/O-bound integer tasks, but yields diminished returns for compute-dense vector tensor mathematics, explaining the tapering of speedup between $p=4$ and $p=8$.
+- This host has **4 physical cores and 8 logical processors**. At $p=8$, each worker gets one logical processor, so all eight workers share four physical core pipelines via Simultaneous Multi-Threading (SMT/Hyper-Threading).
+- SMT provides excellent throughput for I/O-bound integer tasks, but yields little benefit for compute-dense vector tensor mathematics. Combined with doubled All-Reduce participation, this explains the measured regression: $T_4 = 33.25\text{ s}$ versus $T_8 = 52.78\text{ s}$.
+- The result is a measured $S_8 = 0.942\times$ and $E_8 = 11.8\%$, i.e. $p=8$ is slower than the single-thread baseline. On this machine, **four workers are the practical optimum**.

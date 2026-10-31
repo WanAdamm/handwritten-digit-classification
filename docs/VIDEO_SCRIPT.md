@@ -25,7 +25,7 @@
 - **Visuals**: Title slide displaying:  
   *CST435 Parallel Processing: Assignment 1*  
   *Distributed CPU Data Parallelism on MNIST with PyTorch DDP & Gloo*  
-  *Hardware: 8-Core Intel/AMD CPU, Windows 11*
+  *Hardware: Intel Core i5-1135G7 (4 cores / 8 threads), Windows 64-bit*
 - **On-Screen Action**: Camera on presenter (or title slide) transitioning into dual-pane IDE view.
 - **Voiceover Script**:
   > *"Hello everyone! In this CST435 assignment, we investigate Data Parallelism for deep neural network training on a single multi-core CPU machine.*  
@@ -58,10 +58,10 @@
   ```
 - **Voiceover Script**:
   > *"Now let’s execute the benchmarks live in the terminal.*  
-  > *First, we run the sequential baseline on one thread. Notice the execution time: it takes approximately forty-two seconds to complete one epoch, achieving an accuracy of 98.47%.*  
+  > *First, we run the sequential baseline on one thread. Notice the execution time: it takes approximately forty-nine point seven seconds to complete one epoch, achieving an accuracy of 98.47%.*
   > *Now, we launch our parallel training script with four worker processes using `-p 4`.*  
-  > *Gloo initializes four worker ranks. Each worker processes a slice of thirty-two samples per batch. Notice that all four workers finish synchronously in just twenty-five point five seconds, reaching identical validation accuracy.*  
-  > *Throughput increased from 1,427 to over 2,350 samples per second, proving our parallelization succeeds without degrading accuracy."*
+  > *Gloo initializes four worker ranks. Each worker processes a slice of thirty-two samples per batch. Notice that all four workers finish synchronously in just thirty-three point two seconds, reaching identical validation accuracy.*
+  > *Throughput increased from 1,208 to 1,805 samples per second, proving our parallelization succeeds without degrading accuracy."*
 
 ---
 
@@ -69,9 +69,10 @@
 - **Visuals**: Slide showing the Scalability Benchmark Table and Speedup / Efficiency graph:
   - Table: $p=1, 2, 4, 8$ with $T_p$, Speedup ($S_p$), Efficiency ($E_p$).
   - Chart showing Measured Speedup vs. Ideal Linear Speedup ($S=p$) and Amdahl's Curve ($s=0.20$).
-- **On-Screen Action**: Highlight the speedup values ($1.46\times$ for $p=2$, $1.65\times$ for $p=4$).
+- **On-Screen Action**: Highlight the speedup values ($1.37\times$ for $p=2$, $1.50\times$ for $p=4$, $0.94\times$ for $p=8$).
 - **Voiceover Script**:
-  > *"Examining our scalability table, scaling from one to four workers yields a speedup of 1.65x. However, speedup is sub-linear, and parallel efficiency drops from 100% to 41.2% at four workers.*  
+  > *"Examining our scalability table, scaling from one to four workers yields a speedup of 1.50x. However, speedup is sub-linear, and parallel efficiency drops from 100% to 37.4% at four workers.*
+  > *At eight workers, the result reverses: eight logical workers share only four physical cores, so SMT contention and higher All-Reduce participation push the speedup below one, to 0.94x. Four workers are the practical optimum on this machine.*
   > *Why does this occur?*  
   > *First, inter-process communication: transferring 1.68 megabytes of gradients across loopback TCP sockets adds latency at every mini-batch.*  
   > *Second, memory bus contention: four cores concurrently streaming activations saturate CPU DRAM bandwidth.*  

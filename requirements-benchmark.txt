@@ -1,0 +1,7 @@
+# Benchmark-only dependencies for the CST435 MNIST scalability suite.
+# Tested with Python 3.12 on Windows and macOS.
+# If a pinned wheel is unavailable on a newer platform, relax that pin to >=.
+torch==2.13.0
+numpy==2.5.2
+matplotlib==3.11.1
+kagglehub==1.0.2
